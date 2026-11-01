@@ -56,7 +56,7 @@ button{font:inherit;color:var(--ink);cursor:pointer}
 </div>
 <div id="info"><h1>Chùa Sen Vàng</h1><div id="on"></div><div id="sch"></div><div id="buff"></div></div>
 <div id="feed"></div>
-<div id="zoom"><button id="zi" aria-label="Phóng to">+</button><button id="zo" aria-label="Thu nhỏ">−</button></div>
+<div id="zoom"><button id="pan" aria-label="Toàn cảnh 360">⟳</button><button id="zi" aria-label="Phóng to">+</button><button id="zo" aria-label="Thu nhỏ">−</button></div>
 <div id="acts">
   <button class="a" data-a="bow"><span>🙏</span>Lễ Phật</button>
   <button class="a" data-a="med"><span>🧘</span>Thiền</button>
@@ -213,11 +213,14 @@ var me=monk(S.name,0x5f86b0,0xf2c14e,0xf0cfb0,true);me.position.set(0,0,3.2);sc.
 // ---------- floating texts
 var floats=[];function fl(txt,col){var s=label(txt,col);s.position.set((Math.random()-.5)*1.2,2,3.2);s.scale.set(1.9,.36,1);sc.add(s);floats.push({s:s,t:0})}
 // ---------- camera orbit
-var yaw=0,pit=.16,dist=3.7,dr=null;
-cv.addEventListener("pointerdown",function(e){dr={x:e.clientX,y:e.clientY};cv.setPointerCapture(e.pointerId)});
-cv.addEventListener("pointermove",function(e){if(!dr)return;yaw-=(e.clientX-dr.x)*.006;pit+=(e.clientY-dr.y)*.004;yaw=Math.max(-1.6,Math.min(1.6,yaw));pit=Math.max(-.05,Math.min(.9,pit));dr={x:e.clientX,y:e.clientY}});
+var yaw=0,pit=.16,dist=3.7,dr=null,pan=false,pd=0;
+cv.addEventListener("pointerdown",function(e){pan=false;$("pan").style.background="";dr={x:e.clientX,y:e.clientY};cv.setPointerCapture(e.pointerId)});
+cv.addEventListener("pointermove",function(e){if(!dr||pd)return;yaw-=(e.clientX-dr.x)*.006;pit+=(e.clientY-dr.y)*.004;pit=Math.max(-.2,Math.min(1.35,pit));dr={x:e.clientX,y:e.clientY}});
 cv.addEventListener("pointerup",function(){dr=null});
-$("zi").onclick=function(){dist=Math.max(2.2,dist-.6)};$("zo").onclick=function(){dist=Math.min(8,dist+.6)};
+$("zi").onclick=function(){dist=Math.max(2.2,dist-.8)};$("zo").onclick=function(){dist=Math.min(14,dist+.8)};
+$("pan").onclick=function(){pan=!pan;if(pan){dist=Math.max(dist,7);pit=.35;toast("Toàn cảnh 360° — chạm màn hình để dừng")}$("pan").style.background=pan?"var(--gold)":""};
+cv.addEventListener("wheel",function(e){dist=Math.max(2.2,Math.min(14,dist+e.deltaY*.005))},{passive:true});
+cv.addEventListener("touchmove",function(e){if(e.touches.length==2){var d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);if(pd)dist=Math.max(2.2,Math.min(14,dist-(d-pd)*.03));pd=d}else pd=0},{passive:true});cv.addEventListener("touchend",function(){pd=0});
 // ---------- actions
 var act="idle",at=0;
 function setAct(a){act=a;at=0;if(RM)RM.presence({a:a,k:++ak});[].forEach.call(document.querySelectorAll(".a"),function(b){b.classList.toggle("on",b.dataset.a==a)})}
@@ -270,7 +273,10 @@ function loop(){requestAnimationFrame(loop);var dt=Math.min(clk.getDelta(),.05),
  koi.forEach(function(f){var a=t*f.sp+f.ph;f.g.position.set(-8+Math.cos(a)*f.R,.06,20+Math.sin(a)*f.R2);f.g.rotation.y=Math.atan2(-Math.sin(a)*f.R,Math.cos(a)*f.R2);f.tl.rotation.y=Math.sin(t*8+f.ph)*.5});
  var nb=Math.hypot(me.position.x-11,me.position.z-18)<3.4;if(nb!==nbs){nbs=nb;$("near").style.display=nb?"block":"none"}
  var px=me.position.x,py=1.0,pz=me.position.z;
- cam.position.set(px+Math.sin(yaw)*Math.cos(pit)*dist,py+.5+Math.sin(pit)*dist,pz+Math.cos(yaw)*Math.cos(pit)*dist);
+ var cx=px+Math.sin(yaw)*Math.cos(pit)*dist,cy=py+.5+Math.sin(pit)*dist,cz=pz+Math.cos(yaw)*Math.cos(pit)*dist;
+ if(pan)yaw+=dt*.35;
+ if(pz<8.55){cx=Math.max(-7.6,Math.min(7.6,cx));cz=Math.max(-10.4,Math.min(12.5,cz));cy=Math.min(cy,7.4)}
+ cam.position.set(cx,Math.max(.4,cy),cz);
  cam.lookAt(px,py+.3,pz-2.5);facade.visible=!(cam.position.z>8.7&&me.position.z<8.7);var zn=me.position.z<9.2?"Chùa Sen Vàng":"Sân vườn chùa";if(zn!==zone){zone=zn;H1.textContent=zn}
  R.render(sc,cam)}
 function relab(m,txt,real){m.remove(m.userData.lb);var l=label(txt,real?"#8fe3b0":null);l.position.set(0,1.55,0);m.add(l);m.userData.lb=l;m.userData.nm=txt}
